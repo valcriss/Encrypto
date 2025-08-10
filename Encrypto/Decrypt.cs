@@ -39,28 +39,29 @@ namespace Encrypto
             byte[] fileBytes = File.ReadAllBytes(inputFilePath);
 
             byte[] salt = new byte[16];
-            byte[] iv = new byte[16];
+            byte[] iv = new byte[12];
+            byte[] tag = new byte[16];
             Buffer.BlockCopy(fileBytes, 0, salt, 0, salt.Length);
             Buffer.BlockCopy(fileBytes, salt.Length, iv, 0, iv.Length);
+            Buffer.BlockCopy(fileBytes, salt.Length + iv.Length, tag, 0, tag.Length);
 
-            int cipherStart = salt.Length + iv.Length;
+            int cipherStart = salt.Length + iv.Length + tag.Length;
             byte[] cipher = new byte[fileBytes.Length - cipherStart];
             Buffer.BlockCopy(fileBytes, cipherStart, cipher, 0, cipher.Length);
 
             using (var pbkdf2 = new Rfc2898DeriveBytes(EncryptPassword, salt, 100_000, HashAlgorithmName.SHA256))
-            using (Aes aes = Aes.Create())
+            using (var aes = new AesGcm(pbkdf2.GetBytes(32), 16))
             {
-                aes.Key = pbkdf2.GetBytes(32);
-                aes.IV = iv;
-
-                using (MemoryStream ms = new MemoryStream())
+                byte[] plaintext = new byte[cipher.Length];
+                try
                 {
-                    using (CryptoStream cs = new CryptoStream(ms, aes.CreateDecryptor(), CryptoStreamMode.Write))
-                    {
-                        cs.Write(cipher, 0, cipher.Length);
-                    }
-                    return ms.ToArray();
+                    aes.Decrypt(iv, cipher, tag, plaintext);
                 }
+                catch (CryptographicException ex)
+                {
+                    throw new CryptographicException("Authentication tag mismatch.", ex);
+                }
+                return plaintext;
             }
 
         }
