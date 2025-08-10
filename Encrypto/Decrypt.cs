@@ -23,13 +23,24 @@ namespace Encrypto
         public void DecryptProcess()
         {
             DecryptedData = DecryptFile(EncryptFile);
-            UnZipFile();
+            string filename = Path.GetTempFileName();
+            try
+            {
+                UnZipFile(filename);
+            }
+            finally
+            {
+                if (File.Exists(filename))
+                {
+                    File.Delete(filename);
+                }
+            }
         }
 
-        private void UnZipFile()
+        private void UnZipFile(string filename)
         {
             if (DecryptedData == null) return;
-            string filename = Path.GetTempFileName();
+            // Using a MemoryStream with ZipArchive could remove the need for this temporary file.
             File.WriteAllBytes(filename, DecryptedData);
             ZipFile.ExtractToDirectory(filename, Destination);
         }
