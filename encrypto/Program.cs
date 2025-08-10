@@ -1,0 +1,71 @@
+﻿using CommandLine;
+
+namespace Encrypto
+{
+    public static class Program
+    {
+        public static int Main(string[] args)
+        {
+            return Parser.Default.ParseArguments<EncryptParameters, DecryptParameters>(args)
+                .MapResult(
+                    (EncryptParameters opts) => RunEncrypt(opts),
+                    (DecryptParameters opts) => RunDecrypt(opts),
+                    errs => 1
+                );
+        }
+
+        private static int RunEncrypt(EncryptParameters opts)
+        {
+            Console.WriteLine($"[ENCRYPT] Source: {opts.Source}, Destination: {opts.Destination}");
+            try
+            {
+                var encrypt = new Encrypt(opts.Source, opts.Password);
+                encrypt.EncryptProcess();
+
+                if (encrypt.EncryptedData != null)
+                {
+                    if (string.IsNullOrEmpty(opts.Destination))
+                    {
+                        Console.WriteLine("No destination specified, using default output.");
+                        opts.Destination = $"{opts.Source}.crypt";
+                    }
+
+                    File.WriteAllBytes(opts.Destination, encrypt.EncryptedData);
+                    Console.WriteLine($"Encrypted data written to {opts.Destination}");
+                }
+                else
+                {
+                    Console.WriteLine("Encryption failed, no data was produced.");
+                    return 2;
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Encryption failed.");
+                Console.WriteLine(e);
+                return 1;
+            }
+
+            return 0;
+        }
+
+        private static int RunDecrypt(DecryptParameters opts)
+        {
+            string destination = !string.IsNullOrEmpty(opts.Destination) ? opts.Destination : "./" + Path.GetFileNameWithoutExtension(opts.Source);
+            Console.WriteLine($"[DECRYPT] Source: {opts.Source}, Destination: {destination}");
+            try
+            {
+                var decrypt = new Decrypt(opts.Source, opts.Password, destination);
+                decrypt.DecryptProcess();
+                Console.WriteLine("Decryption completed successfully.");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("Decryption failed. Bad password or file format?");
+                return 1;
+            }
+
+            return 0;
+        }
+    }
+}
