@@ -1,37 +1,33 @@
 # Encrypto
 
-Application de chiffrement/déchiffrement basée sur Avalonia.
+Encrypto is a command-line utility to encrypt and decrypt directories. It compresses the contents to protect and then encrypts the archive with AES-GCM to produce a single `.crypt` file.
 
-## Publication et exécution sous Linux
+## Technical details
+- Key derivation via PBKDF2 (SHA-256, 100,000 iterations) with a 16-byte salt.
+- Symmetric AES-256 encryption in GCM mode with a 12-byte initialization vector (IV).
+- The resulting file is structured as: `salt || IV || tag || ciphertext`.
+- For interoperability, the encrypted content is a ZIP archive of the source directory.
 
-### Prérequis
-- [.NET SDK 8.0](https://dotnet.microsoft.com/en-us/download)
+## Usage
+### Commands
 
-### Publier
-Utiliser le profil de publication Linux fourni :
-
+#### encrypt
+Encrypts a directory.
 ```bash
-./publish-linux.sh
+encrypto encrypt -s <directory> -p <password> [-d <output_file>]
 ```
 
-Le binaire sera généré dans `Encrypto/bin/Release/net8.0/linux-x64/publish/`.
-
-### Lancer l'application
-
+#### decrypt
+Decrypts a `.crypt` file.
 ```bash
-./run-linux.sh
+encrypto decrypt -s <file.crypt> -p <password> [-d <destination_directory>]
 ```
 
-Ce script publie l'application si nécessaire puis exécute le binaire généré.
+### Common options
+- `-s`, `--source`: path to the source directory or file.
+- `-p`, `--password`: password used to derive the key.
+- `-d`, `--destination`: output path. For `encrypt`, this is the generated file (default `<source>.crypt`). For `decrypt`, this is the destination directory (default a folder with the same name as the file without extension).
 
-## Format du fichier chiffré
+## License
 
-Pour l'interopérabilité, le fichier résultant du chiffrement est la concaténation des
-champs suivants :
-
-1. **Sel** : 16 octets utilisés pour la dérivation de clé (PBKDF2).
-2. **IV** : 12 octets aléatoires utilisés comme vecteur de démarrage pour AES‑GCM.
-3. **Tag** : 16 octets de tag d'authentification généré par AES‑GCM.
-4. **Ciphertext** : les données chiffrées.
-
-L'ordre est strictement `sel || IV || tag || ciphertext`.
+This project is licensed under the [MIT](LICENSE.md) license.
