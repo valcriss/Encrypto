@@ -51,10 +51,23 @@ namespace Encrypto
 
         private static int RunDecrypt(DecryptParameters opts)
         {
-            string destination = !string.IsNullOrEmpty(opts.Destination) ? opts.Destination : "./" + Path.GetFileNameWithoutExtension(opts.Source);
+            string destination = !string.IsNullOrEmpty(opts.Destination)
+                ? opts.Destination
+                : Path.Combine(Environment.CurrentDirectory, Path.GetFileNameWithoutExtension(opts.Source));
             Console.WriteLine($"[DECRYPT] Source: {opts.Source}, Destination: {destination}");
             try
             {
+                if (File.Exists(destination))
+                {
+                    Console.WriteLine($"Destination path points to an existing file: {destination}");
+                    return 1;
+                }
+
+                if (!Directory.Exists(destination))
+                {
+                    Directory.CreateDirectory(destination);
+                }
+
                 var decrypt = new Decrypt(opts.Source, opts.Password, destination);
                 decrypt.DecryptProcess();
                 Console.WriteLine("Decryption completed successfully.");
