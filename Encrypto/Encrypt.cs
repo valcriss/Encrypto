@@ -22,13 +22,25 @@ namespace Encrypto
         public void EncryptProcess()
         {
             string zipFilename = CreateZipFile();
-            EncryptedData = EncryptFile(zipFilename);
+            try
+            {
+                EncryptedData = EncryptFile(zipFilename);
+            }
+            finally
+            {
+                if (File.Exists(zipFilename))
+                {
+                    File.Delete(zipFilename);
+                }
+            }
         }
 
         private string CreateZipFile()
         {
             string filename = Path.GetTempFileName();
             if (File.Exists(filename)) { File.Delete(filename); }
+            // An alternative approach could use a MemoryStream or FileOptions.DeleteOnClose
+            // to avoid creating a physical temporary file.
             ZipFile.CreateFromDirectory(EncryptDirectory, filename);
             return filename;
         }
