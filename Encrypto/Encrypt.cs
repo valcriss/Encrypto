@@ -35,29 +35,22 @@ namespace Encrypto
 
         private byte[] EncryptFile(string inputFilePath)
         {
-            using (FileStream fsInput = new FileStream(inputFilePath, FileMode.Open))
-            using (MemoryStream fsEncrypted = new MemoryStream())
+            byte[] plaintext = File.ReadAllBytes(inputFilePath);
+            byte[] salt = RandomNumberGenerator.GetBytes(16);
+            byte[] iv = RandomNumberGenerator.GetBytes(12);
+
+            using (var pbkdf2 = new Rfc2898DeriveBytes(EncryptPassword, salt, 100_000, HashAlgorithmName.SHA256))
+            using (var aes = new AesGcm(pbkdf2.GetBytes(32), 16))
             {
-                byte[] salt = RandomNumberGenerator.GetBytes(16);
-                byte[] iv = RandomNumberGenerator.GetBytes(16);
+                byte[] cipher = new byte[plaintext.Length];
+                byte[] tag = new byte[16];
+                aes.Encrypt(iv, plaintext, cipher, tag);
 
-                using (var pbkdf2 = new Rfc2898DeriveBytes(EncryptPassword, salt, 100_000, HashAlgorithmName.SHA256))
-                using (Aes aes = Aes.Create())
-                {
-                    aes.Key = pbkdf2.GetBytes(32);
-                    aes.IV = iv;
-
-                    using (var cryptoStream = new CryptoStream(fsEncrypted, aes.CreateEncryptor(), CryptoStreamMode.Write))
-                    {
-                        fsInput.CopyTo(cryptoStream);
-                    }
-                }
-
-                byte[] cipher = fsEncrypted.ToArray();
-                byte[] output = new byte[salt.Length + iv.Length + cipher.Length];
+                byte[] output = new byte[salt.Length + iv.Length + tag.Length + cipher.Length];
                 Buffer.BlockCopy(salt, 0, output, 0, salt.Length);
                 Buffer.BlockCopy(iv, 0, output, salt.Length, iv.Length);
-                Buffer.BlockCopy(cipher, 0, output, salt.Length + iv.Length, cipher.Length);
+                Buffer.BlockCopy(tag, 0, output, salt.Length + iv.Length, tag.Length);
+                Buffer.BlockCopy(cipher, 0, output, salt.Length + iv.Length + tag.Length, cipher.Length);
                 return output;
             }
         }
