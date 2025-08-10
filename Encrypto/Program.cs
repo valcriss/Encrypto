@@ -1,43 +1,21 @@
+﻿using Avalonia;
 using System;
-using System.IO;
 
-namespace Encrypto
+namespace Encrypto.UI;
+
+class Program
 {
-    internal static class Program
-    {
-        static void Main(string[] args)
-        {
-            if (args.Length == 0)
-            {
-                Console.WriteLine("Usage:");
-                Console.WriteLine("  encrypto encrypt <directory> <password>");
-                Console.WriteLine("  encrypto decrypt <file> <password> <destination>");
-                return;
-            }
+    // Initialization code. Don't use any Avalonia, third-party APIs or any
+    // SynchronizationContext-reliant code before AppMain is called: things aren't initialized
+    // yet and stuff might break.
+    [STAThread]
+    public static void Main(string[] args) => BuildAvaloniaApp()
+        .StartWithClassicDesktopLifetime(args);
 
-            switch (args[0].ToLowerInvariant())
-            {
-                case "encrypt" when args.Length == 3:
-                    var encrypt = new Encrypt(args[1], args[2]);
-                    encrypt.EncryptProcess();
-                    if (encrypt.EncryptedData != null)
-                    {
-                        var outputFile = Path.ChangeExtension(args[1], ".crypt");
-                        File.WriteAllBytes(outputFile, encrypt.EncryptedData);
-                        Console.WriteLine($"Encrypted data written to {outputFile}");
-                    }
-                    break;
-                case "decrypt" when args.Length == 4:
-                    var decrypt = new Decrypt(args[1], args[2], args[3]);
-                    decrypt.DecryptProcess();
-                    Console.WriteLine("Decryption completed.");
-                    break;
-                default:
-                    Console.WriteLine("Usage:");
-                    Console.WriteLine("  encrypto encrypt <directory> <password>");
-                    Console.WriteLine("  encrypto decrypt <file> <password> <destination>");
-                    break;
-            }
-        }
-    }
+    // Avalonia configuration, don't remove; also used by visual designer.
+    public static AppBuilder BuildAvaloniaApp()
+        => AppBuilder.Configure<App>()
+            .UsePlatformDetect()
+            .WithInterFont()
+            .LogToTrace();
 }
