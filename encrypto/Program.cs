@@ -16,7 +16,10 @@ namespace Encrypto
 
         private static int RunEncrypt(EncryptParameters opts)
         {
-            Console.WriteLine($"[ENCRYPT] Source: {opts.Source}, Destination: {opts.Destination}");
+            string destination = !string.IsNullOrEmpty(opts.Destination)
+                ? opts.Destination
+                : Path.Combine(Environment.CurrentDirectory, $"{Path.GetFileNameWithoutExtension(opts.Source)}.crypt");
+            Console.WriteLine($"[ENCRYPT] Source: {opts.Source}, Destination: {destination}");
             try
             {
                 var encrypt = new Encrypt(opts.Source, opts.Password);
@@ -24,14 +27,8 @@ namespace Encrypto
 
                 if (encrypt.EncryptedData != null)
                 {
-                    if (string.IsNullOrEmpty(opts.Destination))
-                    {
-                        Console.WriteLine("No destination specified, using default output.");
-                        opts.Destination = $"{opts.Source}.crypt";
-                    }
-
-                    File.WriteAllBytes(opts.Destination, encrypt.EncryptedData);
-                    Console.WriteLine($"Encrypted data written to {opts.Destination}");
+                    File.WriteAllBytes(destination, encrypt.EncryptedData);
+                    Console.WriteLine($"Encrypted data written to {destination}");
                 }
                 else
                 {

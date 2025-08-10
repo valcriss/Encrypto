@@ -11,6 +11,6 @@ public class EncryptParameters
     [Option('p', "password", Required = true, HelpText = "Password to encrypt the file content.")]
     public string Password { get; set; }
 
-    [Option('d', "destination", Required = true, HelpText = "Destination file for encrypted files.")]
+    [Option('d', "destination", Default = null, HelpText = "Destination file for encrypted files.")]
     public string Destination { get; set; }
 }
