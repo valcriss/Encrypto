@@ -1,11 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
-using System.Linq;
 using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace Encrypto
 {
@@ -40,46 +36,33 @@ namespace Encrypto
 
         private byte[] DecryptFile(string inputFilePath)
         {
-            using (FileStream fsInput = new FileStream(inputFilePath, FileMode.Open))
-            {
-                using (MemoryStream fsOutput = new MemoryStream())
-                {
-                    using (AesManaged aes = new AesManaged())
-                    {
-                        aes.Key = GenerateByteValue(32);
-                        aes.IV = GenerateByteValue(16);
+            byte[] fileBytes = File.ReadAllBytes(inputFilePath);
 
-                        // Perform encryption
-                        ICryptoTransform decryptor = aes.CreateDecryptor();
-                        using (CryptoStream cs = new CryptoStream(fsOutput, decryptor, CryptoStreamMode.Write))
-                        {
-                            fsInput.CopyTo(cs);
-                        }
+            byte[] salt = new byte[16];
+            byte[] iv = new byte[16];
+            Buffer.BlockCopy(fileBytes, 0, salt, 0, salt.Length);
+            Buffer.BlockCopy(fileBytes, salt.Length, iv, 0, iv.Length);
+
+            int cipherStart = salt.Length + iv.Length;
+            byte[] cipher = new byte[fileBytes.Length - cipherStart];
+            Buffer.BlockCopy(fileBytes, cipherStart, cipher, 0, cipher.Length);
+
+            using (var pbkdf2 = new Rfc2898DeriveBytes(EncryptPassword, salt, 100_000, HashAlgorithmName.SHA256))
+            using (Aes aes = Aes.Create())
+            {
+                aes.Key = pbkdf2.GetBytes(32);
+                aes.IV = iv;
+
+                using (MemoryStream ms = new MemoryStream())
+                {
+                    using (CryptoStream cs = new CryptoStream(ms, aes.CreateDecryptor(), CryptoStreamMode.Write))
+                    {
+                        cs.Write(cipher, 0, cipher.Length);
                     }
-                    return fsOutput.ToArray();
+                    return ms.ToArray();
                 }
             }
 
-        }
-
-        private byte[] GenerateByteValue(int length)
-        {
-            int index = 0;
-            string v = EncryptPassword;
-            while (Encoding.UTF8.GetBytes(v).Length < length)
-            {
-                v += EncryptPassword[index];
-                index++;
-                if (index == EncryptPassword.Length)
-                    index = 0;
-            }
-
-            while (Encoding.UTF8.GetBytes(v).Length > length)
-            {
-                v = v.Substring(v.Length - 1);
-            }
-
-            return Encoding.UTF8.GetBytes(v);
         }
     }
 }
